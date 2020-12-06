@@ -119,4 +119,22 @@ baby_df %>%
   geom_point()
 ```
 
+* Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
 
+```{r}
+baby_df = read_csv("./data/birthweight.csv")
+
+baby_lm = baby_df %>% 
+  mutate(
+    babysex = as.factor(babysex), 
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace)
+  )
+
+sapply(baby_lm, function(x) sum(is.na(x))) %>% 
+  knitr::kable(caption = "table for missing values", 
+               col.names = c("missing value count"))
+```
+
+I converted babysex, frace, malform and mrace to factor.  There's no missing values in the dataset.
