@@ -180,5 +180,45 @@ add_predictions(lm_final) %>%
     y = "residuals"
   )
 ```
+  
+* Compare your model to two others:  
+
+```{r cv}
+cv_df = crossv_mc(baby_df, 100)
+
+cv_df = 
+  cv_df %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble))
+
+cv_df = 
+  cv_df %>% 
+  mutate(
+    lm_final = map(train, ~lm(bwt ~ bhead + blength + gaweeks + delwt + wtgain + 
+    babysex + mrace, data = .x)),
+    lm_comp_1 = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    lm_comp_2 = map(train, ~lm(bwt ~ bhead * blength * babysex, data = .x))
+    ) %>% 
+  mutate(
+    rmse_final = map2_dbl(lm_final, test, ~rmse(model = .x, data = .y)),
+    rmse_comp_1 = map2_dbl(lm_comp_1, test, ~rmse(model = .x, data = .y)),
+    rmse_comp_2 = map2_dbl(lm_comp_2, test, ~rmse(model = .x, data = .y))
+  )
 
 
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin() + 
+  labs(
+    title = "prediction error: model comparison"
+  )
+```
+
+We can see that the proposed final model has the lowest RMSE and is therefore the best performing model.
