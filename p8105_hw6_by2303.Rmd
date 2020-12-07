@@ -9,6 +9,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(viridis)
+library(modelr)
 knitr::opts_chunk$set(
 	echo = TRUE,
 	warning = FALSE,
@@ -99,26 +100,7 @@ models_results_df %>%
 
 
 ## Problem 2
-
-Find some residuals
-
-```{r}
-baby_df = read_csv("./data/birthweight.csv")
-```
-
-fit a model
-
-```{r}
-model_fit = lm(bwt ~ gaweeks, data = baby_df)
-```
-
-```{r}
-baby_df %>% 
-  modelr::add_residuals(model_fit) %>% 
-  ggplot(aes(x = gaweeks, y = resid)) + 
-  geom_point()
-```
-
+  
 * Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
 
 ```{r}
@@ -137,4 +119,66 @@ sapply(baby_lm, function(x) sum(is.na(x))) %>%
                col.names = c("missing value count"))
 ```
 
-I converted babysex, frace, malform and mrace to factor.  There's no missing values in the dataset.
+I converted babysex, frace, malform and mrace to factor.  There's no missing values in the dataset.  
+
+* Propose a regression model for birthweight.  
+
+I first created correlation plot for all continuous variables:
+
+```{r}
+cor_df = 
+  baby_df %>% 
+  select(-babysex, -frace, -malform, -mrace) %>% 
+  select(bwt, everything())
+
+mcor = round(cor(cor_df), 2)
+
+upper<- mcor
+
+upper[upper.tri(mcor)]<- ""
+
+upper<- as.data.frame(upper)
+
+upper %>% 
+  arrange(desc(bwt)) %>% 
+  knitr::kable(caption = "correlation matrxi for continuous variables")
+```
+
+I will choose the top 5 variables that have the largest correlation with birth weight, include all categorical variables as well as their interaction terms. 
+
+```{r}
+lm_proposed = lm(bwt ~ bhead + blength + gaweeks + delwt + wtgain + 
+                   babysex + frace + malform + mrace, data = baby_lm)
+```
+
+Then I will use stepwise selection to find the best model:  
+
+```{r}
+stats::step(lm_proposed, direction = 'both')
+```
+  
+And my final proposed model is:  
+
+```{r}
+lm_final = lm(formula = bwt ~ bhead + blength + gaweeks + delwt + wtgain + 
+    babysex + mrace, data = baby_lm) 
+
+summary(lm_final)
+```
+
+* Show a plot of model residuals against fitted values
+```{r residual plot}
+baby_lm %>% 
+add_residuals(lm_final) %>% 
+add_predictions(lm_final) %>% 
+  ggplot(aes(x = pred, y = resid)) + 
+  geom_point() + 
+  geom_line(y = 0, color = "red") + 
+  labs(
+    title = "residual vs fitted value plot",
+    x = "fitted value(gram)",
+    y = "residuals"
+  )
+```
+
+
