@@ -238,4 +238,54 @@ weather_df =
   select(name, id, everything())
 ```
 
+* Use 5000 bootstrap samples and, for each bootstrap sample, produce estimates of these two quantities.  
+```{r, warning=FALSE}
+set.seed(133)
+
+boot_straps = 
+  data_frame(
+    strap_number = 1:5000,
+    strap_sample = rerun(5000, sample_frac(weather_df, replace = TRUE)))
+```
+
+```{r}
+bootstrap_results = 
+  boot_straps %>% 
+  mutate(
+    models = map(strap_sample, ~lm(tmax ~ tmin, data = .x)),
+    model_result = map(models, broom::glance),
+    model_estimate = map(models, broom::tidy)) %>% 
+  select(-strap_sample, -models) %>% 
+  unnest() %>%
+  select(strap_number, r.squared, term, estimate) %>%
+  pivot_wider(
+    names_from = "term",
+    values_from = "estimate"
+  ) %>%
+  janitor::clean_names() %>%
+  mutate(log_est = log(intercept * tmin))
+```
+
+* Plot the distribution of your estimates, and describe these in words.   
+
+```{r}
+bootstrap_results %>% 
+  ggplot(aes(x = r_squared)) +
+  geom_density() +
+  xlab("Estimated r squared")
+```
+As observed from the density plot, the $\hat{r}^2$ has a bell-shape and is approximately normal with a mean value around 0.91. 
+
+
+```{r}
+bootstrap_results %>% 
+  ggplot(aes(x = log_est)) +
+  geom_density() +
+  xlab("Log(Beta_0 x Beta_1)")
+```
+As observed from the density plot, the $log(\hat{\beta}_0*\hat{\beta}_1)$ is also approximately normal with a mean at around 2.10.   
+
+*  identify the 2.5% and 97.5% quantiles to provide a 95% confidence interval.  
+
+
 
