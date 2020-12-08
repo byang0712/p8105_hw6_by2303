@@ -287,5 +287,10 @@ As observed from the density plot, the $log(\hat{\beta}_0*\hat{\beta}_1)$ is als
 
 *  identify the 2.5% and 97.5% quantiles to provide a 95% confidence interval.  
 
+```{r}
+quantile(pull(bootstrap_results, r_squared), probs = c(0.025, 0.975))
+quantile(pull(bootstrap_results, log_est), probs = c(0.025, 0.975))
+```
+
 
 
